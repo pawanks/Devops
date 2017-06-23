@@ -1,0 +1,160 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+#VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure("2") do |config|
+
+  ## Config for app1/flask instance
+  config.vm.define "app1", primary: true do |app1|
+    app1.vm.box = "ubuntu/trusty64"
+    app1.vm.hostname = 'app1'
+    app1.vm.box_url = "ubuntu/trusty64"
+
+    app1.vm.network :private_network, ip: "192.168.33.10"
+    app1.vm.network :forwarded_port, guest: 22, host: 2210, id: "ssh"
+
+
+    app1.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "app1"]
+    end # app1 ends here!
+
+    #config.vm.provision "shell", inline: "cat /Users/pawan/.ssh/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys"
+
+    #config.vm.provision :ansible do |ansible|
+    #  # Define and point to ansisble playbook to be executed during VM startup.
+    #  ansible.playbook = "provisioning/playbook.yml"
+    #end # Provisioner ends here!
+
+  end   # config ends here 
+
+  ##  Config app2/flask instance  
+  #config.vm.define "app2", autostart: false do |app2|
+  config.vm.define "app2" do |app2|
+    app2.vm.box = "ubuntu/trusty64"
+    app2.vm.hostname = 'app2'
+    app2.vm.box_url = "ubuntu/trusty64"
+
+    app2.vm.network :private_network, ip: "192.168.33.11"
+    app2.vm.network :forwarded_port, guest: 22, host: 2211 , id: "ssh"
+
+
+    app2.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "app2"]
+    end
+
+    ## Adding Your local user key to vagrant's authorized_keys for easy password less access using ansible.
+
+    #config.vm.provision :ansible do |ansible|
+    #  # Define and point to ansisble playbook to be executed during VM startup.
+    #  ansible.playbook = "provisioning/playbook.yml"
+    #end # Provisioner ends here!
+
+  end
+
+  ## Mysql as database instance 
+  config.vm.define "db" do |db|
+    db.vm.box = "ubuntu/trusty64"
+    db.vm.hostname = 'db'
+    db.vm.box_url = "ubuntu/trusty64"
+
+    db.vm.network :private_network, ip: "192.168.33.12"
+    db.vm.network :forwarded_port, guest: 22, host: 2212, id: "ssh"
+
+    db.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "db"]
+    end
+    
+
+    #config.vm.provision :ansible do |ansible|
+    #  # Define and point to ansisble playbook to be executed during VM startup.
+    #  ansible.playbook = "provisioning/playbook.yml"
+    #end # Provisioner ends here!
+
+  end
+
+  ## Registry instance hosting consul server for quick service discovery for app (Flask in our case).
+  config.vm.define "registry" do |registry|
+    registry.vm.box = "ubuntu/trusty64"
+    registry.vm.hostname = 'registry'
+    registry.vm.box_url = "ubuntu/trusty64"
+
+    registry.vm.network :private_network, ip: "192.168.33.13"
+    registry.vm.network :forwarded_port, guest: 22, host: 2213, id: "ssh"
+
+    registry.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "registry"]
+    end
+   
+
+    #config.vm.provision :ansible do |ansible|
+    #  # Define and point to ansisble playbook to be executed during VM startup.
+    #  ansible.playbook = "provisioning/playbook.yml"
+    #end # Provisioner ends here!
+
+  end
+
+  ## Haproxy as load balancer it will be using centos as base machine
+  config.vm.define "lb1" do |lb1|
+    lb1.vm.box = "centos/6"
+    lb1.vm.hostname = 'lb1'
+    lb1.vm.box_url = "centos/6"
+
+    lb1.vm.network :private_network, ip: "192.168.33.14"
+    lb1.vm.network :forwarded_port, guest: 22, host: 2214, id: "ssh"
+
+    lb1.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "lb1"]
+    end
+
+
+    #config.vm.provision :ansible do |ansible|
+    #  # Define and point to ansisble playbook to be executed during VM startup.
+    #  ansible.playbook = "provisioning/playbook.yml"
+    #end # Provisioner ends here!
+
+  end
+
+  ## Nginx as loadbalacer/reverse proxy  
+  config.vm.define "lb2" do |lb2|
+    lb2.vm.box = "centos/6"
+    lb2.vm.hostname = 'lb2'
+    lb2.vm.box_url = "centos/6"
+
+    lb2.vm.network :private_network, ip: "192.168.33.15"
+    lb2.vm.network :forwarded_port, guest: 22, host: 2215, id: "ssh"
+
+    lb2.vm.provider :virtualbox do |v|
+      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+      v.customize ["modifyvm", :id, "--memory", 512]
+      v.customize ["modifyvm", :id, "--name", "lb2"]
+    end
+
+
+    #config.vm.provision :ansible do |ansible|
+    #  # Define and point to ansisble playbook to be executed during VM startup.
+    #  ansible.playbook = "provisioning/playbook.yml"
+    #end # Provisioner ends here!
+
+  end
+  
+    ## Adding Your local user key to vagrant's authorized_keys for easy password less access using ansible.
+    config.vm.provision "shell" do |s|
+    ssh_pub_key = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
+    s.inline = <<-SHELL
+      mkdir -pv /root/.ssh
+      echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
+      echo #{ssh_pub_key} >> /root/.ssh/authorized_keys
+    SHELL
+    end
+end
