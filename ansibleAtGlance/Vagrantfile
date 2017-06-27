@@ -1,62 +1,69 @@
+# Defines our Vagrant environment
+#
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
 appinfra = [
-  ["app1", "192.168.33.10","2210"],
-  ["app2", "192.168.33.11","2211"],
-  ["db", "192.168.33.12","2212"],
-  ["registry", "192.168.33.13","2213"],
-  ["lbnginx", "192.168.33.14","2214"],
-  ["lbhaproxy", "192.168.33.15","2215"],
-]
+	   ["lb1", "192.168.33.10", "2210"],
+	   ["lb2", "192.168.33.11", "2211"],
+           ["app1", "192.168.33.12", "2212"], 
+           ["app2", "192.168.33.13", "2213"], 
+           ["db", "192.168.33.14", "2214"], 
+           ["regis", "192.168.33.15", "2215"], 
+
+	]
 
 Vagrant.configure("2") do |config|
+  # Manging Host and Guest machine's /etc/hosts file using "hostmanager" pluggin. hostupdater only does it for base/HOST machine. 
   config.hostmanager.enabled = true
   config.hostmanager.manage_host = true
   config.hostmanager.manage_guest = true
   config.hostmanager.ignore_private_ip = false
   config.hostmanager.include_offline = true
-  config.vm.box = "centos/6"
-  config.vm.box_check_update = false
-  if Vagrant.has_plugin?("vagrant-cachier")
-    config.cache.auto_detect=true
-  end
-  config.vm.provider :virtualbox do |vb|
-    vb.customize ["modifyvm", :id, "--memory", "512"]
-  end
 
-  # create mgmt node
-    config.vm.define :mgmt do |mgmt_config|
+
+   # create mgmt node
+  config.vm.define :mgmt do |mgmt_config|
       mgmt_config.vm.box = "centos/6"
-    
       mgmt_config.vm.hostname = "mgmt"
-      mgmt_config.vm.network :private_network, ip: "10.0.15.10"
+      mgmt_config.vm.host_name = "mgmt"
+      mgmt_config.vm.network :private_network, ip: "192.168.33.100"
       mgmt_config.vm.provider "virtualbox" do |vb|
-        vb.memory = "512"
+        vb.name = "mgmt"
+        vb.memory = "256"
       end
       mgmt_config.vm.provision :shell, path: "bootstrap-mgmt.sh"
-    end
-  # Rest of the infra
-  appinfra.each do |name, ipaddr, natport|
-    config.vm.define name.to_sym do |cfg|
-      cfg.vm.network :private_network, ip: ipaddr
-      cfg.vm.network :forwarded_port, guest: 22, host: natport, id: "ssh"
-      cfg.vm.host_name = "%s" % name
-      cfg.vm.hostname = "%s" % name
-    end
   end
 
-   ## Adding Your local user key to vagrant's authorized_keys for easy passwordless access from Host Machine.
+
+  # create infra as defined in appinfra list 
+  # https://docs.vagrantup.com/v2/vagrantfile/tips.html
+  appinfra.each do |vm_name, vm_ip, vm_port|
+    config.vm.define vm_name do |node|
+        node.vm.box = "centos/6"
+        node.vm.hostname = "#{vm_name}"
+        node.vm.network :private_network, ip:vm_ip 
+        node.vm.network "forwarded_port", guest: 22, host: vm_port, id: "ssh"
+        node.vm.provider "virtualbox" do |vb|
+          vb.name = vm_name
+          vb.memory = "512"
+        end
+    end
+
+  end
+
+       ## Adding Your local user key to vagrant's authorized_keys for easy password less access using ansible.
     config.vm.provision "shell" do |s|
     ssh_pub_key = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
     s.inline = <<-SHELL
       mkdir -pv /root/.ssh
       echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
       echo #{ssh_pub_key} >> /root/.ssh/authorized_keys
-      su -m vagrant -c "ssh-keygen -f /home/vagrant/.ssh/id_rsa -t rsa -N ''"
-      sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-      /etc/init.d/sshd reload
-      setenforce 0
-      yum install libselinux-python -y
+      ssh-keygen -f /home/vagrant/.ssh/id_rsa -t rsa -N ''
+      sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+      sudo /etc/init.d/sshd reload
       SHELL
-    end	
-
+    end
 
 end
+
