@@ -48,8 +48,8 @@ app[1:2]
 db
 
 [regis]
-registry
+regis
 
 [loadbalacer]
-lbnginx
-lbhaproxy
+lb1
+lb2
