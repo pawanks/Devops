@@ -1,0 +1,5 @@
+---
+- hosts: lbnginx 
+  become: true
+  roles:
+   - nginx

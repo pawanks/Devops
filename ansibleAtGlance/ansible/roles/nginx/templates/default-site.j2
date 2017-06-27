@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+server {
+    listen       80;
+    #server_name  lbnginx;
+    server_name  {{ansible_hostname}};
+    root         /usr/share/nginx/html;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+
+	proxy_pass  http://testapp;
+    	proxy_set_header Host $host;
+    	proxy_set_header X-Real-IP $remote_addr;
+    	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    	proxy_set_header X-Forwarded-Proto $scheme;
+    
+	}
+
+    error_page 404 /404.html;
+        location = /40x.html {
+    }
+
+    error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+    }
+
+}
+
