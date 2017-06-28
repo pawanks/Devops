@@ -1,0 +1,9 @@
+---
+
+- name: add app-user with /sbin/nologin
+  user: name=app-user shell=/bin/false 
+
+- name: create project directory
+  file: path=/app1 state=directory mode=0755 owner=app-user group=app-user
+
+- name: 

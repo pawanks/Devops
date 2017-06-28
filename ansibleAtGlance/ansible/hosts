@@ -41,15 +41,15 @@
 # leading 0s:
 
 #db-[99:101]-node.example.com
-[apps]
-app[1:2]
+[app]
+app[1:2].bs.local
 
 [database]
-db
+db.bs.local
 
 [regis]
-regis
+regis.bs.local
 
-[loadbalacer]
-lb1
-lb2
+[lb]
+lb1.bs.local
+lb2.bs.local

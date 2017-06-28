@@ -4,14 +4,14 @@
 # vi: set ft=ruby :
 
 appinfra = [
-	   ["lb1", "192.168.33.10", "2210"],
-	   ["lb2", "192.168.33.11", "2211"],
-           ["app1", "192.168.33.12", "2212"], 
-           ["app2", "192.168.33.13", "2213"], 
-           ["db", "192.168.33.14", "2214"], 
-           ["regis", "192.168.33.15", "2215"], 
+	        ["lb1.bs.local", "192.168.33.10", "2210"],
+	        ["lb2.bs.local", "192.168.33.11", "2211"],
+            ["app1.bs.local", "192.168.33.12", "2212"], 
+            ["app2.bs.local", "192.168.33.13", "2213"], 
+            ["db.bs.local", "192.168.33.14", "2214"], 
+            ["regis.bs.local", "192.168.33.15", "2215"], 
 
-	]
+       	]   
 
 Vagrant.configure("2") do |config|
   # Manging Host and Guest machine's /etc/hosts file using "hostmanager" pluggin. hostupdater only does it for base/HOST machine. 
@@ -20,22 +20,7 @@ Vagrant.configure("2") do |config|
   config.hostmanager.manage_guest = true
   config.hostmanager.ignore_private_ip = false
   config.hostmanager.include_offline = true
-
-
-   # create mgmt node
-  config.vm.define :mgmt do |mgmt_config|
-      mgmt_config.vm.box = "centos/6"
-      mgmt_config.vm.hostname = "mgmt"
-      mgmt_config.vm.host_name = "mgmt"
-      mgmt_config.vm.network :private_network, ip: "192.168.33.100"
-      mgmt_config.vm.provider "virtualbox" do |vb|
-        vb.name = "mgmt"
-        vb.memory = "256"
-      end
-      mgmt_config.vm.provision :shell, path: "bootstrap-mgmt.sh"
-  end
-
-
+  config.env.enable # enable the plugin
   # create infra as defined in appinfra list 
   # https://docs.vagrantup.com/v2/vagrantfile/tips.html
   appinfra.each do |vm_name, vm_ip, vm_port|
@@ -52,6 +37,25 @@ Vagrant.configure("2") do |config|
 
   end
 
+   # create mgmt node
+  config.vm.define :mgmt do |mgmt_config|
+      mgmt_config.vm.box = "centos/6"
+      mgmt_config.vm.hostname = "mgmt"
+      mgmt_config.vm.host_name = "mgmt"
+      mgmt_config.vm.network :private_network, ip: "192.168.33.100"
+      mgmt_config.vm.provider "virtualbox" do |vb|
+        vb.name = "mgmt"
+        vb.memory = "256"
+      end
+      #if File.exist?("secret.yml")
+      #require 'yaml'
+      #proxy = YAML::load(File.open('secret.yml'))
+      mgmt_config.vm.provision :shell, inline: "export access_token = ENV['access_token']; export title = ENV['title'];export ansible_password=ENV['ansible_password']"
+      #end
+      mgmt_config.vm.provision :shell, path: "bootstrap-mgmt.sh"
+  end
+
+
        ## Adding Your local user key to vagrant's authorized_keys for easy password less access using ansible.
     config.vm.provision "shell" do |s|
     ssh_pub_key = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
@@ -59,8 +63,10 @@ Vagrant.configure("2") do |config|
       mkdir -pv /root/.ssh
       echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
       echo #{ssh_pub_key} >> /root/.ssh/authorized_keys
-      ssh-keygen -f /home/vagrant/.ssh/id_rsa -t rsa -N ''
+      su -m vagrant -c "ssh-keygen -f /home/vagrant/.ssh/id_rsa -t rsa -N ''"
       sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+      yum install libselinux-python -y
+      setenforce 0
       sudo /etc/init.d/sshd reload
       SHELL
     end
